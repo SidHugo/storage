@@ -18,4 +18,10 @@ var routes = Routes{
 		"/",
 		Ping,
 	},
+	Route{
+		"Post data",
+		"POST",
+		"/data",
+		DataCreate,
+	},
 }
