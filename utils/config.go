@@ -1,7 +1,7 @@
 package utils
 
 const (
-	DBUrl = "localhost"
-	DBName = "test"
+	DBUrl            = "localhost"
+	DBName           = "test"
 	DBCollectionName = "testCollection"
 )

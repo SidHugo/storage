@@ -5,13 +5,24 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func InitDb() (*mgo.Session, error) {
+var (
+	Session *mgo.Session
+
+	Mongo *mgo.DialInfo
+)
+
+func InitDb() {
 	// Setup DB connection
+	mongo, err := mgo.ParseURL(utils.DBUrl)
+	if err != nil {
+		panic(err)
+	}
 	session, err := mgo.Dial(utils.DBUrl)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	session.SetMode(mgo.Monotonic, true)
-	return session, nil
+	Session = session
+	Mongo = mongo
 }
