@@ -19,9 +19,15 @@ var routes = Routes{
 		Ping,
 	},
 	Route{
-		"Post data",
+		"Signs",
 		"POST",
-		"/data",
-		DataCreate,
+		"/signs",
+		CreateSign,
+	},
+	Route{
+		"Sign",
+		"GET",
+		"/signs/{signName}",
+		GetSign,
 	},
 }

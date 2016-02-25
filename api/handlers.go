@@ -3,7 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/ManikDV/storage/db"
+	"github.com/ManikDV/storage/utils"
+	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"net/http"
 )
@@ -12,10 +15,10 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Pong!\n")
 }
 
-func DataCreate(w http.ResponseWriter, r *http.Request) {
+func CreateSign(w http.ResponseWriter, r *http.Request) {
 	var sign Sign
 
-	body, err := ioutil.ReadAll(io.Reader(r.Body))
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -32,4 +35,37 @@ func DataCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create sign in DB
+	session := db.Session.Clone()
+	defer session.Close()
+
+	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	if err := collection.Insert(&sign); err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(sign); err != nil {
+		panic(err)
+	}
+}
+
+func GetSign(w http.ResponseWriter, r *http.Request) {
+	var sign Sign
+
+	signName := mux.Vars(r)["signName"]
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	if err := collection.Find(bson.M{"signname": signName}).One(&sign); err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusFound)
+	if err := json.NewEncoder(w).Encode(sign); err != nil {
+		panic(err)
+	}
 }
