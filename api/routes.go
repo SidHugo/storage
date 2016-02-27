@@ -19,15 +19,21 @@ var routes = Routes{
 		Ping,
 	},
 	Route{
-		"Signs",
+		"Create sign",
 		"POST",
 		"/signs",
 		CreateSign,
 	},
 	Route{
-		"Sign",
+		"Get sign",
 		"GET",
 		"/signs/{signName}",
 		GetSign,
+	},
+	Route{
+		"Get signs",
+		"GET",
+		"/signs",
+		GetSigns,
 	},
 }
