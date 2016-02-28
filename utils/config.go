@@ -1,7 +1,7 @@
 package utils
 
 const (
-	DBUrl            = "localhost"
-	DBName           = "test"
-	DBCollectionName = "testCollection"
+	DBUrl            = "localhost:27017" // default port for mongos
+	DBName           = "test"            // all defaults
+	DBCollectionName = "test"
 )
