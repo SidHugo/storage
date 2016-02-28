@@ -36,4 +36,10 @@ var routes = Routes{
 		"/signs",
 		GetSigns,
 	},
+	Route{
+		"Delete sign",
+		"DELETE",
+		"/signs/{signName}",
+		DeleteSign,
+	},
 }
