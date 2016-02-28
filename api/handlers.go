@@ -71,7 +71,7 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSigns(w http.ResponseWriter, r *http.Request) {
-	var signs []Sign
+	var signs Signs
 
 	session := db.Session.Clone()
 	defer session.Close()
@@ -84,6 +84,23 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusFound)
 	if err := json.NewEncoder(w).Encode(signs); err != nil {
+		panic(err)
+	}
+}
+
+func DeleteSign(w http.ResponseWriter, r *http.Request) {
+	signName := mux.Vars(r)["signName"]
+	session := db.Session.Clone()
+	defer session.Close()
+
+	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	if err := collection.Remove(bson.M{"signname": signName}); err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(sign); err != nil {
 		panic(err)
 	}
 }
