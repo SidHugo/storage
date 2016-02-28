@@ -100,7 +100,7 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(sign); err != nil {
+	if err := json.NewEncoder(w).Encode(signName); err != nil { // мб тут должно быть не signName, компилятор ругался прост
 		panic(err)
 	}
 }
