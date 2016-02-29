@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ManikDV/storage/db"
 	"github.com/ManikDV/storage/utils"
 	"github.com/gorilla/mux"
@@ -12,7 +11,12 @@ import (
 )
 
 func Ping(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Pong!\n")
+	responseMessage := "Pong!"
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(responseMessage); err != nil {
+		panic(err)
+	}
 }
 
 func CreateSign(w http.ResponseWriter, r *http.Request) {
