@@ -10,6 +10,8 @@ var (
 	Session *mgo.Session
 
 	Mongo *mgo.DialInfo
+
+	log = utils.SetUpLogger("db")
 )
 
 func InitDb() {
@@ -43,26 +45,26 @@ func DbExists(name string) (bool, error) {
 			return true, nil
 		}
 	}
-	return false, nil
+	return false, err
 }
 
 type Database struct {
-	Id          string "_id"
-	Partitioned bool   "partitioned"
-	Primary     string "primary"
+	Id          string `db:"_id"`
+	Partitioned bool   `db:"partitioned"`
+	Primary     string `db:"primary"`
 }
 
 type Shard struct {
-	Id   string "_id"
-	Host string "host"
-	Tags string "tags"
+	Id   string `shard:"_id"`
+	Host string `shard:"host"`
+	Tags string `shard:"tags"`
 }
 
 type Mongos struct {
-	Id      string "_id"
-	Ping    string "ping"
-	Up      int    "up"
-	Waiting bool   "waiting"
+	Id      string `mongos:"_id"`
+	Ping    string `mongos:"ping"`
+	Up      int    `mongos:"up"`
+	Waiting bool   `mongos:"waiting"`
 }
 
 type Collection struct {
@@ -86,11 +88,13 @@ func GetClusterStats() (ClusterStats, error) {
 
 	configExists, err := DbExists("config")
 	if err != nil {
+		log.Error(err)
 		return ClusterStats{}, err
 	}
 
 	mainDbExists, err := DbExists(utils.DBName)
 	if err != nil {
+		log.Error(err)
 		return ClusterStats{}, err
 	}
 
@@ -103,25 +107,26 @@ func GetClusterStats() (ClusterStats, error) {
 
 		// find all databases in cluster
 		if err := configDB.C("databases").Find(nil).All(&databases); err != nil {
-			// panic(err)
+			log.Error(err)
 			return ClusterStats{}, err
 		}
 
 		// find all shards in cluster
 		if err := configDB.C("shards").Find(nil).All(&shards); err != nil {
-			// panic(err)
+			log.Error(err)
 			return ClusterStats{}, err
 		}
 
 		// find all mongos in cluster
 		if err := configDB.C("mongos").Find(nil).All(&mongoses); err != nil {
-			// panic(err)
+			log.Error(err)
 			return ClusterStats{}, err
 		}
 
 		// find all sharded collections in cluster
 		colNames, err := mainDB.CollectionNames()
 		if err != nil {
+			log.Error(err)
 			return ClusterStats{}, err
 		}
 
