@@ -8,9 +8,14 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
+var logger *os.File = utils.SetUpLogger("api")
+
 func Ping(w http.ResponseWriter, r *http.Request) {
+	logger.Write("Ping")
+
 	responseMessage := "Pong!"
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
@@ -20,6 +25,8 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateSign(w http.ResponseWriter, r *http.Request) {
+	logger.Write("CreateSign")
+
 	var sign Sign
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -55,6 +62,8 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSign(w http.ResponseWriter, r *http.Request) {
+	logger.Write("GetSign")
+
 	var sign Sign
 
 	signName := mux.Vars(r)["signName"]
@@ -75,6 +84,8 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetSigns(w http.ResponseWriter, r *http.Request) {
+	logger.Write("GetSigns")
+
 	var signs Signs
 
 	session := db.Session.Clone()
@@ -93,6 +104,8 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteSign(w http.ResponseWriter, r *http.Request) {
+	logger.Write("DeleteSigns")
+
 	signName := mux.Vars(r)["signName"]
 	session := db.Session.Clone()
 	defer session.Close()
