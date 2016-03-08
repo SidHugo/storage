@@ -51,6 +51,13 @@ func main() {
 
 	PrintClusterInfo()
 
+	result, err := db.GetDbStats("test")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(result)
+
 	router := api.NewRouter()
 	http.ListenAndServe(":8080", router)
 }

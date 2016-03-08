@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/ManikDV/storage/utils"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -79,6 +80,7 @@ type ClusterStats struct {
 	Collections []Collection
 }
 
+// Gets information about cluster topology and it's members: mongoses, shards, DBs
 func GetClusterStats() (ClusterStats, error) {
 
 	var databases []Database
@@ -91,55 +93,81 @@ func GetClusterStats() (ClusterStats, error) {
 		log.Error(err)
 		return ClusterStats{}, err
 	}
+	if !configExists {
+		return ClusterStats{}, errors.New("Config databse doesn't exist, check whether you are connecting to mongos")
+	}
 
 	mainDbExists, err := DbExists(utils.DBName)
 	if err != nil {
 		log.Error(err)
 		return ClusterStats{}, err
 	}
+	if !mainDbExists {
+		return ClusterStats{}, errors.New("Main db with name " + utils.DBName + " doesn't exist")
+	}
+	var session = Session.Clone()
+	defer session.Close()
 
-	if configExists && mainDbExists {
-		var session = Session.Clone()
-		defer session.Close()
+	var configDB = session.DB("config")
+	var mainDB = session.DB(utils.DBName)
 
-		var configDB = session.DB("config")
-		var mainDB = session.DB(utils.DBName)
-
-		// find all databases in cluster
-		if err := configDB.C("databases").Find(nil).All(&databases); err != nil {
-			log.Error(err)
-			return ClusterStats{}, err
-		}
-
-		// find all shards in cluster
-		if err := configDB.C("shards").Find(nil).All(&shards); err != nil {
-			log.Error(err)
-			return ClusterStats{}, err
-		}
-
-		// find all mongos in cluster
-		if err := configDB.C("mongos").Find(nil).All(&mongoses); err != nil {
-			log.Error(err)
-			return ClusterStats{}, err
-		}
-
-		// find all sharded collections in cluster
-		colNames, err := mainDB.CollectionNames()
-		if err != nil {
-			log.Error(err)
-			return ClusterStats{}, err
-		}
-
-		for _, colName := range colNames {
-			colCount, err := mainDB.C(colName).Count()
-			if err != nil {
-				return ClusterStats{}, err
-			}
-			collections = append(collections, Collection{colName, colCount})
-		}
-
-		return ClusterStats{databases, shards, mongoses, collections}, nil
+	// find all databases in cluster
+	if err := configDB.C("databases").Find(nil).All(&databases); err != nil {
+		log.Error(err)
+		return ClusterStats{}, err
 	}
 
+	// find all shards in cluster
+	if err := configDB.C("shards").Find(nil).All(&shards); err != nil {
+		log.Error(err)
+		return ClusterStats{}, err
+	}
+
+	// find all mongos in cluster
+	if err := configDB.C("mongos").Find(nil).All(&mongoses); err != nil {
+		log.Error(err)
+		return ClusterStats{}, err
+	}
+
+	// find all sharded collections in cluster
+	colNames, err := mainDB.CollectionNames()
+	if err != nil {
+		log.Error(err)
+		return ClusterStats{}, err
+	}
+
+	for _, colName := range colNames {
+		colCount, err := mainDB.C(colName).Count()
+		if err != nil {
+			return ClusterStats{}, err
+		}
+		collections = append(collections, Collection{colName, colCount})
+	}
+
+	return ClusterStats{databases, shards, mongoses, collections}, nil
+
 	return ClusterStats{}, errors.New("Config db doesn't exist")
+}
+
+type DbStats struct {
+	Raw           bson.M "raw"
+	Objects       int    "objects"
+	AvgObjectSize int    "avgObjSize"
+	DataSize      int    "dataSize"
+	StorageSize   int    "storageSize"
+	Indexes       int    "indexes"
+}
+
+// Gets detailed statistics of certain database
+func GetDbStats(dbName string) (DbStats, error) {
+	session := Session.Clone()
+	db := session.DB(dbName)
+
+	result := DbStats{}
+	err := db.Run(bson.D{{"dbStats", 1}, {"scale", 1}}, &result)
+	if err != nil {
+		return DbStats{}, err
+	}
+
+	return result, nil
 }

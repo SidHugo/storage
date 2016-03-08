@@ -2,8 +2,8 @@ package utils
 
 import (
 	"fmt"
-	"os"
 	"github.com/op/go-logging"
+	"os"
 )
 
 func SetUpLogger(loggerName string) *logging.Logger {
