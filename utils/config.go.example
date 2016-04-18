@@ -6,4 +6,5 @@ const (
 	DBUrl            = "localhost:27017" // default port for mongos
 	DBName           = "test"            // all defaults
 	DBCollectionName = "test"
+	AESKey			 = "key1235123124"
 )
