@@ -13,6 +13,12 @@ var (
 	Mongo *mgo.DialInfo
 
 	log = utils.SetUpLogger("db")
+
+	AvgWriteQueryTime int64 = 0
+	AvgReadQueryTime int64 = 0
+
+	LastWriteQueryTime int64 = 0
+	LastReadQueryTime int64 = 0
 )
 
 func InitDb() {
@@ -145,8 +151,6 @@ func GetClusterStats() (ClusterStats, error) {
 	}
 
 	return ClusterStats{databases, shards, mongoses, collections}, nil
-
-	return ClusterStats{}, errors.New("Config db doesn't exist")
 }
 
 type DbStats struct {

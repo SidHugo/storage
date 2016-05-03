@@ -26,4 +26,4 @@ _testmain.go
 *.iml
 *.log
 
-/utils/config.go
+/utils/config.go.example
