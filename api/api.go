@@ -7,3 +7,14 @@ type Sign struct {
 }
 
 type Signs []Sign
+
+type User struct {
+	key		string
+	login		string
+	password	string
+	subscriptions	map[string]string
+	subscribersIP	[]string
+	previusResults	[]string
+}
+
+type Users []User

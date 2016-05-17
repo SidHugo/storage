@@ -7,4 +7,5 @@ const (
 	DBName           = "test"            // all defaults
 	DBCollectionName = "test"
 	AESKey		 = "key1235123124"
+	DBUsersCollectionName = "users"
 )
