@@ -9,12 +9,12 @@ type Sign struct {
 type Signs []Sign
 
 type User struct {
-	key		string
-	login		string
-	password	string
-	subscriptions	map[string]string
-	subscribersIP	[]string
-	previusResults	[]string
+	Key		string			`json:"key"`
+	Login		string			`json:"login"`
+	Password	string			`json:"password"`
+	Subscriptions	map[string]string	`json:"subscriptions"`
+	SubscribersIP	[]string		`json:"subscribersIP"`
+	PreviusResults	[]string		`json:"previusResults"`
 }
 
 type Users []User
