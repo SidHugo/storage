@@ -48,7 +48,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	session := db.Session.Clone()
 	defer session.Close()
 
-	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
 	if err := collection.Insert(&sign); err != nil {
 		log.Error(err)
 	}
@@ -70,7 +70,7 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 	session := db.Session.Clone()
 	defer session.Close()
 
-	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
 	if err := collection.Find(bson.M{"signname": signName}).One(&sign); err != nil {
 		log.Error(err)
 	}
@@ -90,7 +90,7 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 	session := db.Session.Clone()
 	defer session.Close()
 
-	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
 	if err := collection.Find(nil).All(&signs); err != nil {
 		log.Error(err)
 	}
@@ -109,7 +109,7 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 	session := db.Session.Clone()
 	defer session.Close()
 
-	collection := session.DB(utils.DBName).C(utils.DBCollectionName)
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
 	if err := collection.Remove(bson.M{"signname": signName}); err != nil {
 		log.Error(err)
 	}

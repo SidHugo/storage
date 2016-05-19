@@ -17,11 +17,11 @@ var (
 
 func InitDb() {
 	// Setup DB connection
-	mongo, err := mgo.ParseURL(utils.DBUrl)
+	mongo, err := mgo.ParseURL(utils.Conf.DBUrl)
 	if err != nil {
 		panic(err)
 	}
-	session, err := mgo.Dial(utils.DBUrl)
+	session, err := mgo.Dial(utils.Conf.DBUrl)
 	if err != nil {
 		panic(err)
 	}
@@ -97,19 +97,19 @@ func GetClusterStats() (ClusterStats, error) {
 		return ClusterStats{}, errors.New("Config databse doesn't exist, check whether you are connecting to mongos")
 	}
 
-	mainDbExists, err := DbExists(utils.DBName)
+	mainDbExists, err := DbExists(utils.Conf.DBName)
 	if err != nil {
 		log.Error(err)
 		return ClusterStats{}, err
 	}
 	if !mainDbExists {
-		return ClusterStats{}, errors.New("Main db with name " + utils.DBName + " doesn't exist")
+		return ClusterStats{}, errors.New("Main db with name " + utils.Conf.DBName + " doesn't exist")
 	}
 	var session = Session.Clone()
 	defer session.Close()
 
 	var configDB = session.DB("config")
-	var mainDB = session.DB(utils.DBName)
+	var mainDB = session.DB(utils.Conf.DBName)
 
 	// find all databases in cluster
 	if err := configDB.C("databases").Find(nil).All(&databases); err != nil {

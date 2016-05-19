@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ManikDV/storage/api"
 	"github.com/ManikDV/storage/db"
+	"github.com/ManikDV/storage/utils"
 )
 
 type DbServer struct {
@@ -46,6 +47,8 @@ func PrintClusterInfo() {
 }
 
 func main() {
+
+	utils.SetConfig()
 
 	db.InitDb()
 
