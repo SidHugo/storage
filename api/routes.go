@@ -66,22 +66,4 @@ var routes = Routes{
 		"/queryStats",
 		GetQueryStats,
 	},
-	Route{
-		"Get cluster info",
-		"GET",
-		"/clusterInfo",
-		GetClusterInfo,
-	},
-	Route{
-		"Get database info",
-		"GET",
-		"/dbInfo/{dbName}",
-		GetDbInfo,
-	},
-	Route{
-		"Get queries stats",
-		"GET",
-		"/queryStats",
-		GetQueryStats,
-	},
 }
