@@ -10,7 +10,7 @@ import (
 
 func AESEncrypt(text []byte) (encrypted []byte, err error) {
 	// creating new cipher block
-	block, err := aes.NewCipher([]byte(AESKey))
+	block, err := aes.NewCipher([]byte(Conf.AESKey))
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func AESEncrypt(text []byte) (encrypted []byte, err error) {
 
 func AESDecrypt(text []byte) (decrypted []byte, err error) {
 	// creating new cipher block
-	block, err := aes.NewCipher([]byte(AESKey))
+	block, err := aes.NewCipher([]byte(Conf.AESKey))
 	if err != nil {
 		return nil, err
 	}
