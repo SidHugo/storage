@@ -130,6 +130,98 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+	log.Info("CreateUser")
+
+	var user User
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	if err := r.Body.Close(); err != nil {
+		panic(err)
+	}
+
+	if err := json.Unmarshal(body, &user); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(422)
+		if err := json.NewEncoder(w).Encode(err); err != nil {
+			log.Error(err)
+		}
+	}
+
+	// Create user in DB
+	session := db.Session.Clone()
+	defer session.Close()
+
+	collection := session.DB(utils.DBName).C(utils.DBUsersCollectionName)
+	if err := collection.Insert(&user); err != nil {
+		log.Error(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		log.Error(err)
+	}
+}
+
+// Processes request for cluster info
+func GetClusterInfo(w http.ResponseWriter, r *http.Request) {
+	log.Info("GetClusterInfo")
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	stats, err := db.GetClusterStats()
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(stats); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+// Processes request for certain DB info, specified by dbName parameter
+func GetDbInfo(w http.ResponseWriter, r *http.Request) {
+	log.Info("GetDbInfo")
+
+	dbName := mux.Vars(r)["dbName"]
+	session := db.Session.Clone()
+	defer session.Close()
+
+	dbStats, err := db.GetDbStats(dbName)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(dbStats); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+// Processes request for queries stats: average read/write time and last read/write time
+func GetQueryStats(w http.ResponseWriter, r *http.Request)  {
+	log.Info("GetQueryStats")
+
+	queriesStats := QueryStats{db.AvgWriteQueryTime, db.AvgReadQueryTime, db.LastWriteQueryTime, db.LastReadQueryTime}
+	log.Info(queriesStats)
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(queriesStats); err != nil {
+		log.Error(err)
+	}
+}
 // Processes request for cluster info
 func GetClusterInfo(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetClusterInfo")

@@ -2,5 +2,4 @@ DBUrl = "localhost:27017"
 DBName = "test"
 DBCollectionName = "test"
 AESKey = "123456"
-
-
+DBUsersCollectionName = "users"
