@@ -19,6 +19,9 @@ var (
 
 	LastWriteQueryTime int64 = 0
 	LastReadQueryTime  int64 = 0
+
+	MaxWriteQueryTime int64 = 0
+	MaxReadQueryTime  int64 = 0
 )
 
 func InitDb() {
