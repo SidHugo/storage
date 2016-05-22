@@ -15,13 +15,14 @@ var (
 	log = utils.SetUpLogger("db")
 
 	AvgWriteQueryTime int64 = 0
-	AvgReadQueryTime int64 = 0
+	AvgReadQueryTime  int64 = 0
 
 	LastWriteQueryTime int64 = 0
-	LastReadQueryTime int64 = 0
+	LastReadQueryTime  int64 = 0
 )
 
 func InitDb() {
+	log.Info("DB initialization started")
 	// Setup DB connection
 	mongo, err := mgo.ParseURL(utils.Conf.DBUrl)
 	if err != nil {
@@ -35,6 +36,7 @@ func InitDb() {
 	session.SetMode(mgo.Monotonic, true)
 	Session = session
 	Mongo = mongo
+	log.Info("DB initialization finished")
 }
 
 func DbExists(name string) (bool, error) {
@@ -88,6 +90,7 @@ type ClusterStats struct {
 
 // Gets information about cluster topology and it's members: mongoses, shards, DBs
 func GetClusterStats() (ClusterStats, error) {
+	log.Info("GetClusterStats requestes")
 
 	var databases []Database
 	var shards []Shard
@@ -164,6 +167,8 @@ type DbStats struct {
 
 // Gets detailed statistics of certain database
 func GetDbStats(dbName string) (DbStats, error) {
+	log.Info("GetDbStats requested")
+
 	session := Session.Clone()
 	db := session.DB(dbName)
 

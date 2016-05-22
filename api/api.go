@@ -7,21 +7,27 @@ type Sign struct {
 }
 
 type QueryStats struct {
-	AvgWriteQueryTimeMs int64
-	AvgReadQueryTimeMs int64
+	AvgWriteQueryTimeMs  int64
+	AvgReadQueryTimeMs   int64
 	LastWriteQueryTimeMs int64
-	LastReadQueryTimeMs int64
+	LastReadQueryTimeMs  int64
 }
 
 type Signs []Sign
 
 type User struct {
-	Key		string			`json:"key"`
-	Login		string			`json:"login"`
-	Password	string			`json:"password"`
-	Subscriptions	map[string]string	`json:"subscriptions"`
-	SubscribersIP	[]string		`json:"subscribersIP"`
-	PreviusResults	[]string		`json:"previusResults"`
+	Key            string            `json:"key"`
+	Login          string            `json:"login"`
+	Password       string            `json:"password"`
+	Subscriptions  map[string]string `json:"subscriptions"`
+	SubscribersIP  []string          `json:"subscribersIP"`
+	PreviusResults []string          `json:"previusResults"`
 }
 
 type Users []User
+
+// Test structure for DB insert-retreive testing
+type TestStruct struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}

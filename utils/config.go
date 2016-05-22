@@ -2,25 +2,41 @@ package utils
 
 import (
 	"github.com/BurntSushi/toml"
-	"fmt"
 )
+
 var (
-	log = SetUpLogger("config")
+	log    = SetUpLogger("config")
+	format = "Read config file: mongos url: %s, AESKey: %s, main db name: %s, main collection name: %s, users collection name: %s, auth login: %s, auth password: %s"
 )
+
 type Config struct {
-	DBUrl string
-	DBName string
-	DBCollectionName string
-	AESKey string
+	DBUrl                 string
+	DBName                string
+	DBCollectionName      string
+	AESKey                string
 	DBUsersCollectionName string
+	AuthLogin             string
+	AuthPassword          string
 }
 
 var Conf Config
 
-func SetConfig() {
-	_, err := toml.DecodeFile("config.toml", &Conf); if err != nil {
-		fmt.Println("Error parsing config")
+func SetDefaultConfig() {
+	_, err := toml.DecodeFile("config.toml", &Conf)
+	if err != nil {
+		log.Error("Error parsing config: ", err)
 		panic(err)
 	}
-	fmt.Println("Read config file: mongos url: " + Conf.DBUrl + ", AESKey: " + Conf.AESKey + ", main db name: " + Conf.DBName + ", main collection name: " + Conf.DBCollectionName)
+
+	log.Infof(format, Conf.DBUrl, Conf.AESKey, Conf.DBName, Conf.DBCollectionName, Conf.DBUsersCollectionName, Conf.AuthLogin, Conf.AuthPassword)
+}
+
+func SetConfig(filepath string) {
+	_, err := toml.DecodeFile(filepath, &Conf)
+	if err != nil {
+		log.Error("Error parsing config: ", err)
+		panic(err)
+	}
+
+	log.Infof(format, Conf.DBUrl, Conf.AESKey, Conf.DBName, Conf.DBCollectionName, Conf.DBUsersCollectionName, Conf.AuthLogin, Conf.AuthPassword)
 }
