@@ -13,15 +13,22 @@ var (
 	Mongo *mgo.DialInfo
 
 	log = utils.SetUpLogger("db")
+
+	AvgWriteQueryTime int64 = 0
+	AvgReadQueryTime  int64 = 0
+
+	LastWriteQueryTime int64 = 0
+	LastReadQueryTime  int64 = 0
 )
 
 func InitDb() {
+	log.Info("DB initialization started")
 	// Setup DB connection
-	mongo, err := mgo.ParseURL(utils.DBUrl)
+	mongo, err := mgo.ParseURL(utils.Conf.DBUrl)
 	if err != nil {
 		panic(err)
 	}
-	session, err := mgo.Dial(utils.DBUrl)
+	session, err := mgo.Dial(utils.Conf.DBUrl)
 	if err != nil {
 		panic(err)
 	}
@@ -29,6 +36,7 @@ func InitDb() {
 	session.SetMode(mgo.Monotonic, true)
 	Session = session
 	Mongo = mongo
+	log.Info("DB initialization finished")
 }
 
 func DbExists(name string) (bool, error) {
@@ -82,6 +90,7 @@ type ClusterStats struct {
 
 // Gets information about cluster topology and it's members: mongoses, shards, DBs
 func GetClusterStats() (ClusterStats, error) {
+	log.Info("GetClusterStats requestes")
 
 	var databases []Database
 	var shards []Shard
@@ -97,19 +106,19 @@ func GetClusterStats() (ClusterStats, error) {
 		return ClusterStats{}, errors.New("Config databse doesn't exist, check whether you are connecting to mongos")
 	}
 
-	mainDbExists, err := DbExists(utils.DBName)
+	mainDbExists, err := DbExists(utils.Conf.DBName)
 	if err != nil {
 		log.Error(err)
 		return ClusterStats{}, err
 	}
 	if !mainDbExists {
-		return ClusterStats{}, errors.New("Main db with name " + utils.DBName + " doesn't exist")
+		return ClusterStats{}, errors.New("Main db with name " + utils.Conf.DBName + " doesn't exist")
 	}
 	var session = Session.Clone()
 	defer session.Close()
 
 	var configDB = session.DB("config")
-	var mainDB = session.DB(utils.DBName)
+	var mainDB = session.DB(utils.Conf.DBName)
 
 	// find all databases in cluster
 	if err := configDB.C("databases").Find(nil).All(&databases); err != nil {
@@ -145,8 +154,6 @@ func GetClusterStats() (ClusterStats, error) {
 	}
 
 	return ClusterStats{databases, shards, mongoses, collections}, nil
-
-	return ClusterStats{}, errors.New("Config db doesn't exist")
 }
 
 type DbStats struct {
@@ -160,6 +167,8 @@ type DbStats struct {
 
 // Gets detailed statistics of certain database
 func GetDbStats(dbName string) (DbStats, error) {
+	log.Info("GetDbStats requested")
+
 	session := Session.Clone()
 	db := session.DB(dbName)
 

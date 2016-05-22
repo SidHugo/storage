@@ -48,4 +48,28 @@ var routes = Routes{
 		"/users",
 		CreateUser,
 	},
+	Route{
+		"Get cluster info",
+		"GET",
+		"/clusterInfo",
+		GetClusterInfo,
+	},
+	Route{
+		"Get database info",
+		"GET",
+		"/dbInfo/{dbName}",
+		GetDbInfo,
+	},
+	Route{
+		"Get queries stats",
+		"GET",
+		"/queryStats",
+		GetQueryStats,
+	},
+	Route{
+		"Test DB speed",
+		"GET",
+		"/testDbSpeed/{quantity}",
+		TestDbSpeed,
+	},
 }

@@ -4,48 +4,49 @@ import (
 	"net/http"
 
 	"database/sql"
-	"fmt"
 	"github.com/ManikDV/storage/api"
 	"github.com/ManikDV/storage/db"
+	"github.com/ManikDV/storage/utils"
 )
 
 type DbServer struct {
 	db *sql.DB
 }
 
-func init() {
-	db.InitDb()
-}
+var log = utils.SetUpLogger("storage")
 
 func PrintClusterInfo() {
 	clusterStats, err := db.GetClusterStats()
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		return
 	}
 
-	fmt.Println("Mongoses:")
+	log.Info("Mongoses:")
 	for _, mongos := range clusterStats.Mongoses {
-		fmt.Printf("\tId:%s, ping: %s, uptime:%d, isWaiting:%t \n", mongos.Id, mongos.Ping, mongos.Up, mongos.Waiting)
+		log.Infof("\tId:%s, ping: %s, uptime:%d, isWaiting:%t \n", mongos.Id, mongos.Ping, mongos.Up, mongos.Waiting)
 	}
 
-	fmt.Println("Shards:")
+	log.Info("Shards:")
 	for _, shard := range clusterStats.Shards {
-		fmt.Printf("\tId:%s, host:%s, tags:%s\n", shard.Id, shard.Host, shard.Tags)
+		log.Infof("\tId:%s, host:%s, tags:%s\n", shard.Id, shard.Host, shard.Tags)
 	}
 
-	fmt.Println("Databases:")
+	log.Info("Databases:")
 	for _, database := range clusterStats.Databases {
-		fmt.Printf("\tName:%s, partitioned:%t, primary:%s\n", database.Id, database.Partitioned, database.Primary)
+		log.Infof("\tName:%s, partitioned:%t, primary:%s\n", database.Id, database.Partitioned, database.Primary)
 	}
 
-	fmt.Println("Collections:")
+	log.Info("Collections:")
 	for _, collection := range clusterStats.Collections {
-		fmt.Printf("\tCollection name:%s, collection count:%d\n", collection.Name, collection.Count)
+		log.Infof("\tCollection name:%s, collection count:%d\n", collection.Name, collection.Count)
 	}
 }
 
 func main() {
+	log.Info("Application starting")
+
+	utils.SetDefaultConfig()
 
 	db.InitDb()
 
@@ -53,11 +54,13 @@ func main() {
 
 	result, err := db.GetDbStats("test")
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		return
 	}
-	fmt.Println(result)
+	log.Info(result)
 
 	router := api.NewRouter()
 	http.ListenAndServe(":8080", router)
+
+	log.Info("Application ready to receive requests")
 }

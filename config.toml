@@ -1,0 +1,7 @@
+DBUrl = "localhost:27017"
+DBName = "test"
+DBCollectionName = "test"
+AESKey = "abcabcabcaabcabc"
+DBUsersCollectionName = "users"
+AuthLogin = "login"
+AuthPassword = "password"
