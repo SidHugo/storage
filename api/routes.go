@@ -42,4 +42,10 @@ var routes = Routes{
 		"/signs/{signName}",
 		DeleteSign,
 	},
+	Route{
+		"Create user",
+		"POST",
+		"/users",
+		CreateUser,
+	},
 }
