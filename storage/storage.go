@@ -46,7 +46,7 @@ func PrintClusterInfo() {
 func main() {
 	log.Info("Application starting")
 
-	utils.SetConfig()
+	utils.SetDefaultConfig()
 
 	db.InitDb()
 

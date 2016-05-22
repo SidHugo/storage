@@ -25,3 +25,9 @@ type User struct {
 }
 
 type Users []User
+
+// Test structure for DB insert-retreive testing
+type TestStruct struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}

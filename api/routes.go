@@ -66,4 +66,10 @@ var routes = Routes{
 		"/queryStats",
 		GetQueryStats,
 	},
+	Route{
+		"Test DB speed",
+		"GET",
+		"/testDbSpeed/{quantity}",
+		TestDbSpeed,
+	},
 }
