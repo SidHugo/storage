@@ -1,5 +1,4 @@
 DBUrl = localhost:27017
 DBName = test
 DBCollectionName = test
-
-
+DBUsersCollectionName = users

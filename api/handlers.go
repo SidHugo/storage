@@ -120,3 +120,40 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 }
+
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+	log.Info("CreateUser")
+
+	var user User
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	if err := r.Body.Close(); err != nil {
+		panic(err)
+	}
+
+	if err := json.Unmarshal(body, &user); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(422)
+		if err := json.NewEncoder(w).Encode(err); err != nil {
+			log.Error(err)
+		}
+	}
+
+	// Create user in DB
+	session := db.Session.Clone()
+	defer session.Close()
+
+	collection := session.DB(utils.DBName).C(utils.DBUsersCollectionName)
+	if err := collection.Insert(&user); err != nil {
+		log.Error(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		log.Error(err)
+	}
+}

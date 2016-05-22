@@ -9,6 +9,7 @@ type Config struct {
 	DBName string
 	DBCollectionName string
 	AESKey string
+	DBUsersCollectionName string
 }
 
 var Conf Config
