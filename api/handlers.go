@@ -27,6 +27,7 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Creates new sign in DB
 func CreateSign(w http.ResponseWriter, r *http.Request) {
 	log.Info("CreateSign")
 
@@ -42,6 +43,14 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.Body.Close(); err != nil {
 		panic(err)
+	}
+
+	// estimate size
+	stats, err := db.GetDbStats(utils.Conf.DBName)
+	if err != nil {
+		log.Error("Could not extract db info:", err)
+	} else {
+		log.Infof("New value will be taking %f part of all storage amount", float32(len(body)) / float32(stats.StorageSize))
 	}
 
 	if err := json.Unmarshal(body, &sign); err != nil {
@@ -75,6 +84,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets sign specified by URL parameter
 func GetSign(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetSign")
 
@@ -108,6 +118,7 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets all signs from DB
 func GetSigns(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetSigns")
 
@@ -132,6 +143,7 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Deletes sign by name, specified by URL parameter
 func DeleteSign(w http.ResponseWriter, r *http.Request) {
 	log.Info("DeleteSigns")
 
@@ -155,6 +167,7 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Creates new user
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	log.Info("CreateUser")
 
