@@ -14,10 +14,6 @@ type DbServer struct {
 	db *sql.DB
 }
 
-func init() {
-	db.InitDb()
-}
-
 func PrintClusterInfo() {
 	clusterStats, err := db.GetClusterStats()
 	if err != nil {
