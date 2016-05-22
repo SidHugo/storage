@@ -2,24 +2,26 @@ package utils
 
 import (
 	"github.com/BurntSushi/toml"
-	"fmt"
 )
+
 var (
 	log = SetUpLogger("config")
 )
+
 type Config struct {
-	DBUrl string
-	DBName string
+	DBUrl            string
+	DBName           string
 	DBCollectionName string
-	AESKey string
+	AESKey           string
 }
 
 var Conf Config
 
 func SetConfig() {
-	_, err := toml.DecodeFile("config.toml", &Conf); if err != nil {
-		fmt.Println("Error parsing config")
+	_, err := toml.DecodeFile("config.toml", &Conf)
+	if err != nil {
+		log.Error("Error parsing config:", err)
 		panic(err)
 	}
-	fmt.Println("Read config file: mongos url: " + Conf.DBUrl + ", AESKey: " + Conf.AESKey + ", main db name: " + Conf.DBName + ", main collection name: " + Conf.DBCollectionName)
+	log.Infof("Read config file: mongos url: %s, AESKey: %s, main db name: %s, main collection name: %s\n", Conf.DBUrl, Conf.AESKey, Conf.DBName, Conf.DBCollectionName)
 }

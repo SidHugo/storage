@@ -173,7 +173,7 @@ func GetDbInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // Processes request for queries stats: average read/write time and last read/write time
-func GetQueryStats(w http.ResponseWriter, r *http.Request)  {
+func GetQueryStats(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetQueryStats")
 
 	queriesStats := QueryStats{db.AvgWriteQueryTime, db.AvgReadQueryTime, db.LastWriteQueryTime, db.LastReadQueryTime}

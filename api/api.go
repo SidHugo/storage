@@ -7,10 +7,10 @@ type Sign struct {
 }
 
 type QueryStats struct {
-	AvgWriteQueryTimeMs int64
-	AvgReadQueryTimeMs int64
+	AvgWriteQueryTimeMs  int64
+	AvgReadQueryTimeMs   int64
 	LastWriteQueryTimeMs int64
-	LastReadQueryTimeMs int64
+	LastReadQueryTimeMs  int64
 }
 
 type Signs []Sign

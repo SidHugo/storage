@@ -3,9 +3,9 @@ package utils
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"io"
 	"crypto/rand"
 	"errors"
+	"io"
 )
 
 func AESEncrypt(text []byte) (encrypted []byte, err error) {
@@ -47,4 +47,3 @@ func AESDecrypt(text []byte) (decrypted []byte, err error) {
 	cfb.XORKeyStream(text, text)
 	return text, nil
 }
-
