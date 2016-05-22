@@ -49,6 +49,36 @@ var routes = Routes{
 		CreateUser,
 	},
 	Route{
+		"Get user",
+		"GET",
+		"/users/{key}",
+		GetUser,
+	},
+	Route{
+		"Authorization",
+		"GET",
+		"/users/authorize/{login}/{password}",
+		Authorization,
+	},
+	Route{
+		"Get subscriptions",
+		"GET",
+		"/users/subscriptions/{login}/{password}",
+		GetSubscriptions,
+	},
+	Route{
+		"Get last results",
+		"GET",
+		"/users/lastresults/{login}/{password}/{requiredLogin}",
+		GetLastResults,
+	},
+	Route{
+		"Get users IPs",
+		"GET",
+		"/users/getips/{login}",
+		GetUserIPs,
+	},
+	Route{
 		"Get cluster info",
 		"GET",
 		"/clusterInfo",
