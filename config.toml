@@ -1,5 +1,6 @@
-DBUrl = localhost:27017
-DBName = test
-DBCollectionName = test
+DBUrl = "localhost:27017"
+DBName = "test"
+DBCollectionName = "test"
+AESKey = "123456"
 
 
