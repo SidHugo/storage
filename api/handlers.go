@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/ManikDV/storage/db"
@@ -20,7 +21,7 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 
 	responseMessage := "Pong!"
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(responseMessage); err != nil {
 		log.Error(err)
 	}
@@ -65,7 +66,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	db.LastWriteQueryTime = elapsed.Nanoseconds() / 1000
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(sign); err != nil {
 		log.Error(err)
 	}
@@ -95,7 +96,7 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusFound)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(sign); err != nil {
 		log.Error(err)
 	}
@@ -119,7 +120,7 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusFound)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(signs); err != nil {
 		log.Error(err)
 	}
@@ -302,6 +303,8 @@ func GetQueryStats(w http.ResponseWriter, r *http.Request) {
 
 // Check header credentials in http request
 func CheckCredentials(w http.ResponseWriter, r *http.Request) bool {
+	log.Debug("CheckCredentials")
+
 	login := r.Header.Get("login")
 	password := r.Header.Get("password")
 
@@ -310,13 +313,16 @@ func CheckCredentials(w http.ResponseWriter, r *http.Request) bool {
 		w.WriteHeader(http.StatusForbidden)
 		return false
 	} else {
-		decryptedLogin, err := utils.AESDecrypt([]byte(login))
+		decodedLogin, err := base64.StdEncoding.DecodeString(login)
+		decodedPassword, err := base64.StdEncoding.DecodeString(password)
+		decryptedLogin, err := utils.AESDecrypt(decodedLogin)
 		if err != nil {
 			log.Errorf("Decryption failed for sign message: %s, error: %s", login, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return false
 		}
-		decryptedPassword, err := utils.AESDecrypt([]byte(password))
+
+		decryptedPassword, err := utils.AESDecrypt(decodedPassword)
 		if err != nil {
 			log.Errorf("Decryption failed for sign message: %s, error: %s", password, err)
 			w.WriteHeader(http.StatusInternalServerError)

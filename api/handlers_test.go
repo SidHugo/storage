@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/ManikDV/storage/utils"
 	"net/http"
@@ -26,8 +27,8 @@ func TestCheckCredentialsCorrect(t *testing.T) {
 		fmt.Println(err)
 		t.FailNow()
 	}
-	req.Header.Set("login", string(encryptedLogin[:]))
-	req.Header.Set("password", string(encryptedPassword[:]))
+	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin[:]))
+	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword[:]))
 
 	w := httptest.NewRecorder()
 	result := CheckCredentials(w, req)
