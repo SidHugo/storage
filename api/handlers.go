@@ -85,6 +85,9 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 
 	if err := collection.Insert(&sign); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
 	db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
@@ -110,17 +113,73 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	signName := mux.Vars(r)["signName"]
+	link := mux.Vars(r)["link"]
 
 	session := db.Session.Clone()
 	defer session.Close()
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
-	if err := collection.Find(bson.M{"signname": signName}).One(&sign); err != nil {
+	if err := collection.Find(bson.M{"link": link}).One(&sign); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(err.Error()))
+		return
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(sign); err != nil {
+		log.Error(err)
+	}
+}
+
+// Gets sign specified by JSON parameter
+func GetSignJson(w http.ResponseWriter, r *http.Request) {
+	log.Info("-> GetSignJson")
+
+	var sign Sign2
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := r.Body.Close(); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.Unmarshal(body, &sign); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
+	if err := collection.Find(bson.M{"link": sign.Link}).One(&sign); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	elapsed := time.Since(start)(encryptedLogin, encryptedPassword).Nanoseconds() / 1000000
 	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
 	db.LastReadQueryTime = elapsed
 	if elapsed > db.MaxReadQueryTime {
@@ -167,18 +226,21 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	signName := mux.Vars(r)["signName"]
+	link := mux.Vars(r)["link"]
 	session := db.Session.Clone()
 	defer session.Close()
 
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
-	if err := collection.Remove(bson.M{"signname": signName}); err != nil {
+	if err := collection.Remove(bson.M{"link": link}); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(signName); err != nil {
+	if err := json.NewEncoder(w).Encode(link); err != nil {
 		log.Error(err)
 	}
 }
