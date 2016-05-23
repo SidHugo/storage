@@ -216,6 +216,219 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	log.Info("GetUser")
+
+	var user User
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	userKey := mux.Vars(r)["key"]
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
+	if err := collection.Find(bson.M{"key": userKey}).One(&user); err != nil {
+		log.Error(err)
+	}
+	elapsed := time.Since(start)
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
+	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		log.Error(err)
+	}
+}
+
+func Authorization(w http.ResponseWriter, r *http.Request) {
+	log.Info("Authorization")
+
+	var user User
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	userLogin := mux.Vars(r)["login"]
+	userPassword := mux.Vars(r)["password"]
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
+	if err := collection.Find(bson.M{"userLogin": userLogin}).One(&user); err != nil {
+		log.Error(err)
+	}
+	elapsed := time.Since(start)
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
+	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	type tempAnswer struct {
+		Answer int	`json:"answer"`
+	}
+	var answer tempAnswer
+	if(user.Password==userPassword) {
+		w.WriteHeader(http.StatusOK)
+		answer.Answer=1
+		if err := json.NewEncoder(w).Encode(answer); err != nil {
+			log.Error(err)
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		answer.Answer=0
+		if err := json.NewEncoder(w).Encode(answer); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
+	log.Info("GetSubscriptions")
+
+	var user User
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	userLogin := mux.Vars(r)["login"]
+	userPassword := mux.Vars(r)["password"]
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
+	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
+		log.Error(err)
+	}
+	elapsed := time.Since(start)
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
+	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	type tempAnswer struct {
+		Access int		`json:"access"`
+		Subs map[string]int	`json:"subs"`
+	}
+	var answer tempAnswer
+
+	if(user.Password==userPassword) {
+		w.WriteHeader(http.StatusOK)
+		answer.Access=1
+		answer.Subs=user.Subscriptions
+		if err := json.NewEncoder(w).Encode(answer); err != nil {
+			log.Error(err)
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		answer.Access=0
+		answer.Subs=nil
+		if err := json.NewEncoder(w).Encode(answer); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func GetLastResults(w http.ResponseWriter, r *http.Request) {
+	log.Info("GetLastResults")
+
+	var user User
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	userLogin := mux.Vars(r)["login"]
+	userPassword := mux.Vars(r)["password"]
+	requiredLogin := mux.Vars(r)["requiredLogin"]
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
+	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
+		log.Error(err)
+	}
+	elapsed := time.Since(start)
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
+	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	type tempAnswer struct {
+		Access int		`json:"access"`
+		Results []string	`json:"results"`
+	}
+	var answer tempAnswer
+	if(user.Password==userPassword && user.Subscriptions[requiredLogin]!=0) {
+		if err := collection.Find(bson.M{"login": requiredLogin}).One(&user); err != nil {
+			log.Error(err)
+			return
+		}
+		elapsed := time.Since(start)
+		db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
+		db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+
+		w.WriteHeader(http.StatusOK)
+		answer.Access=1
+		answer.Results=user.PreviusResults
+		if err := json.NewEncoder(w).Encode(answer); err != nil {
+			log.Error(err)
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		answer.Access=0
+		answer.Results=nil
+		if err := json.NewEncoder(w).Encode(answer); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func GetUserIPs(w http.ResponseWriter, r *http.Request) {
+	log.Info("GetUserIPs")
+
+	var user User
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	userLogin := mux.Vars(r)["login"]
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
+	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
+		log.Error(err)
+	}
+	elapsed := time.Since(start)
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
+	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	type tempAnswer struct {
+		Results []string	`json:"address"`
+	}
+	var answer tempAnswer
+	answer.Results=user.SubscribersIP
+	if err := json.NewEncoder(w).Encode(answer); err != nil {
+		log.Error(err)
+	}
+}
+
 // Processes request for cluster info
 func GetClusterInfo(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetClusterInfo")
