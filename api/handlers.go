@@ -68,6 +68,21 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
+
+	// check for duplicates
+	cnt, err := collection.Find(bson.M{"link": sign.Link}).Count()
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if cnt > 0 {
+		log.Warningf("Cant insert sign %s - already present", sign.Link)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(fmt.Sprintf("Cant insert sign %s - already present", sign.Link)))
+		return
+	}
+
 	if err := collection.Insert(&sign); err != nil {
 		log.Error(err)
 	}
