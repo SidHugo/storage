@@ -11,6 +11,8 @@ type QueryStats struct {
 	AvgReadQueryTimeMs   int64
 	LastWriteQueryTimeMs int64
 	LastReadQueryTimeMs  int64
+	MaxWriteQueryTimeMs  int64
+	MaxReadQueryTimeMs   int64
 }
 
 type Signs []Sign

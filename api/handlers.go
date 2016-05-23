@@ -27,6 +27,7 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Creates new sign in DB
 func CreateSign(w http.ResponseWriter, r *http.Request) {
 	log.Info("CreateSign")
 
@@ -42,6 +43,14 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := r.Body.Close(); err != nil {
 		panic(err)
+	}
+
+	// estimate size
+	stats, err := db.GetDbStats(utils.Conf.DBName)
+	if err != nil {
+		log.Error("Could not extract db info:", err)
+	} else {
+		log.Infof("New value will be taking %f part of all storage amount", float32(len(body)) / float32(stats.StorageSize))
 	}
 
 	if err := json.Unmarshal(body, &sign); err != nil {
@@ -61,9 +70,12 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Insert(&sign); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgWriteQueryTime = (db.AvgWriteQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastWriteQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
+	db.LastWriteQueryTime = elapsed
+	if elapsed > db.MaxWriteQueryTime {
+		db.MaxWriteQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -72,6 +84,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets sign specified by URL parameter
 func GetSign(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetSign")
 
@@ -91,9 +104,12 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Find(bson.M{"signname": signName}).One(&sign); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
@@ -102,6 +118,7 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets all signs from DB
 func GetSigns(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetSigns")
 
@@ -126,6 +143,7 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Deletes sign by name, specified by URL parameter
 func DeleteSign(w http.ResponseWriter, r *http.Request) {
 	log.Info("DeleteSigns")
 
@@ -149,6 +167,7 @@ func DeleteSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Creates new user
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	log.Info("CreateUser")
 
@@ -160,15 +179,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		panic(err)
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	if err := r.Body.Close(); err != nil {
-		panic(err)
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	if err := json.Unmarshal(body, &user); err != nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(422)
+		w.WriteHeader(http.StatusInternalServerError)
 		if err := json.NewEncoder(w).Encode(err); err != nil {
 			log.Error(err)
 		}
@@ -181,10 +204,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
 	if err := collection.Insert(&user); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(user); err != nil {
 		log.Error(err)
 	}
@@ -477,18 +503,37 @@ func TestDbSpeed(w http.ResponseWriter, r *http.Request) {
 
 	for i := 0; i < qty; i++ {
 		subj := TestStruct{Key: string(i), Value: string(i)}
+
+		// first, insert value
+		insertStart := time.Now()
 		if err := collection.Insert(&subj); err != nil {
 			log.Error("Error adding value to collection", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
+		elapsed := time.Since(insertStart).Nanoseconds() / 1000000
+		db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
+		db.LastWriteQueryTime = elapsed
+		if elapsed > db.MaxWriteQueryTime {
+			db.MaxWriteQueryTime = elapsed
+		}
+
+		// second, retreive it
+		findStart := time.Now()
 		if err := collection.Find(bson.M{"key": string(i)}).One(&result); err != nil {
 			log.Error("Error retreiving value from collection", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
+		elapsed = time.Since(findStart).Nanoseconds() / 1000000
+		db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+		db.LastReadQueryTime = elapsed
+		if elapsed > db.MaxReadQueryTime {
+			db.MaxReadQueryTime = elapsed
+		}
+
 	}
 	// clean up
 	collection.DropCollection()
@@ -504,7 +549,7 @@ func TestDbSpeed(w http.ResponseWriter, r *http.Request) {
 func GetQueryStats(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetQueryStats")
 
-	queriesStats := QueryStats{db.AvgWriteQueryTime, db.AvgReadQueryTime, db.LastWriteQueryTime, db.LastReadQueryTime}
+	queriesStats := QueryStats{db.AvgWriteQueryTime, db.AvgReadQueryTime, db.LastWriteQueryTime, db.LastReadQueryTime, db.MaxWriteQueryTime, db.MaxReadQueryTime}
 	log.Info(queriesStats)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
