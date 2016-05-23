@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -642,4 +643,24 @@ func CheckCredentials(w http.ResponseWriter, r *http.Request) bool {
 		}
 	}
 	return true
+}
+
+// returns list of all methods
+func GetHelp(w http.ResponseWriter, r *http.Request) {
+	log.Info("-> GetHelp")
+	var buffer bytes.Buffer
+	buffer.WriteString("Available methods:\n")
+
+	for _, routehelp := range textRoutes {
+		buffer.WriteString(routehelp + "\n")
+	}
+
+	_, err := w.Write(buffer.Bytes())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Error(err)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		log.Info("GetHelp success")
+	}
 }

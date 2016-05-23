@@ -108,4 +108,13 @@ var routes = Routes{
 		"/testDbSpeed/{quantity}",
 		TestDbSpeed,
 	},
+	Route{
+		"Help",
+		"GET",
+		"/help",
+		GetHelp,
+	},
 }
+
+// used for /help get method
+var textRoutes []string
