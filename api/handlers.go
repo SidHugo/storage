@@ -29,9 +29,9 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 
 // Creates new sign in DB
 func CreateSign(w http.ResponseWriter, r *http.Request) {
-	log.Info("CreateSign")
+	log.Info("-> CreateSign")
 
-	var sign Sign
+	var sign Sign2
 
 	if !CheckCredentials(w, r) {
 		return
@@ -50,7 +50,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error("Could not extract db info:", err)
 	} else {
-		log.Infof("New value will be taking %f part of all storage amount", float32(len(body)) / float32(stats.StorageSize))
+		log.Infof("New value will be taking %f part of all storage amount", float32(len(body))/float32(stats.StorageSize))
 	}
 
 	if err := json.Unmarshal(body, &sign); err != nil {
@@ -86,9 +86,9 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 
 // Gets sign specified by URL parameter
 func GetSign(w http.ResponseWriter, r *http.Request) {
-	log.Info("GetSign")
+	log.Info("-> GetSign")
 
-	var sign Sign
+	var sign Sign2
 
 	if !CheckCredentials(w, r) {
 		return
@@ -120,9 +120,9 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 
 // Gets all signs from DB
 func GetSigns(w http.ResponseWriter, r *http.Request) {
-	log.Info("GetSigns")
+	log.Info("-> GetSigns")
 
-	var signs Signs
+	var signs Signs2
 
 	if !CheckCredentials(w, r) {
 		return
@@ -145,7 +145,7 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 
 // Deletes sign by name, specified by URL parameter
 func DeleteSign(w http.ResponseWriter, r *http.Request) {
-	log.Info("DeleteSigns")
+	log.Info("-> DeleteSigns")
 
 	if !CheckCredentials(w, r) {
 		return
@@ -307,18 +307,18 @@ func Authorization(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
-		Answer int	`json:"answer"`
+		Answer int `json:"answer"`
 	}
 	var answer tempAnswer
-	if(user.Password==userPassword) {
+	if user.Password == userPassword {
 		w.WriteHeader(http.StatusOK)
-		answer.Answer=1
+		answer.Answer = 1
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
-		answer.Answer=0
+		answer.Answer = 0
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
@@ -354,22 +354,22 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
-		Access int		`json:"access"`
-		Subs map[string]int	`json:"subs"`
+		Access int            `json:"access"`
+		Subs   map[string]int `json:"subs"`
 	}
 	var answer tempAnswer
 
-	if(user.Password==userPassword) {
+	if user.Password == userPassword {
 		w.WriteHeader(http.StatusOK)
-		answer.Access=1
-		answer.Subs=user.Subscriptions
+		answer.Access = 1
+		answer.Subs = user.Subscriptions
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
-		answer.Access=0
-		answer.Subs=nil
+		answer.Access = 0
+		answer.Subs = nil
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
@@ -406,11 +406,11 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
-		Access int		`json:"access"`
-		Results []string	`json:"results"`
+		Access  int      `json:"access"`
+		Results []string `json:"results"`
 	}
 	var answer tempAnswer
-	if(user.Password==userPassword && user.Subscriptions[requiredLogin]!=0) {
+	if user.Password == userPassword && user.Subscriptions[requiredLogin] != 0 {
 		start = time.Now()
 		if err := collection.Find(bson.M{"login": requiredLogin}).One(&user); err != nil {
 			log.Error(err)
@@ -424,15 +424,15 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		answer.Access=1
-		answer.Results=user.PreviusResults
+		answer.Access = 1
+		answer.Results = user.PreviusResults
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
-		answer.Access=0
-		answer.Results=nil
+		answer.Access = 0
+		answer.Results = nil
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
@@ -468,10 +468,10 @@ func GetUserIPs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	type tempAnswer struct {
-		Results []string	`json:"address"`
+		Results []string `json:"address"`
 	}
 	var answer tempAnswer
-	answer.Results=user.SubscribersIP
+	answer.Results = user.SubscribersIP
 	if err := json.NewEncoder(w).Encode(answer); err != nil {
 		log.Error(err)
 	}
