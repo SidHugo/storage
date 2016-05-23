@@ -200,13 +200,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Create user in DB
 	session := db.Session.Clone()
 	defer session.Close()
-
+	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
 	if err := collection.Insert(&user); err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
+	}
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
+	db.LastWriteQueryTime = elapsed
+	if elapsed > db.MaxWriteQueryTime {
+		db.MaxWriteQueryTime = elapsed
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -235,13 +241,39 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Find(bson.M{"key": userKey}).One(&user); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(user); err != nil {
+		log.Error(err)
+	}
+}
+
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	log.Info("DeleteUser")
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	userKey := mux.Vars(r)["key"]
+	session := db.Session.Clone()
+	defer session.Close()
+
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
+	if err := collection.Remove(bson.M{"key": userKey}); err != nil {
+		log.Error(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(userKey); err != nil {
 		log.Error(err)
 	}
 }
@@ -266,9 +298,12 @@ func Authorization(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Find(bson.M{"userLogin": userLogin}).One(&user); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
@@ -310,9 +345,12 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
@@ -359,9 +397,12 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
@@ -370,13 +411,17 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 	}
 	var answer tempAnswer
 	if(user.Password==userPassword && user.Subscriptions[requiredLogin]!=0) {
+		start = time.Now()
 		if err := collection.Find(bson.M{"login": requiredLogin}).One(&user); err != nil {
 			log.Error(err)
 			return
 		}
-		elapsed := time.Since(start)
-		db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-		db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+		elapsed := time.Since(start).Nanoseconds() / 1000000
+		db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+		db.LastReadQueryTime = elapsed
+		if elapsed > db.MaxReadQueryTime {
+			db.MaxReadQueryTime = elapsed
+		}
 
 		w.WriteHeader(http.StatusOK)
 		answer.Access=1
@@ -413,9 +458,12 @@ func GetUserIPs(w http.ResponseWriter, r *http.Request) {
 	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
 		log.Error(err)
 	}
-	elapsed := time.Since(start)
-	db.AvgReadQueryTime = (db.AvgReadQueryTime + (elapsed.Nanoseconds() / 1000)) / 2
-	db.LastReadQueryTime = elapsed.Nanoseconds() / 1000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)

@@ -55,6 +55,12 @@ var routes = Routes{
 		GetUser,
 	},
 	Route{
+		"Delete user",
+		"DELETE",
+		"/users/{key}",
+		DeleteUser,
+	},
+	Route{
 		"Authorization",
 		"GET",
 		"/users/authorize/{login}/{password}",
