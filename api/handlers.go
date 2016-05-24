@@ -179,7 +179,7 @@ func GetSignJson(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	elapsed := time.Since(start)(encryptedLogin, encryptedPassword).Nanoseconds() / 1000000
+	elapsed := time.Since(start).Nanoseconds() / 1000000
 	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
 	db.LastReadQueryTime = elapsed
 	if elapsed > db.MaxReadQueryTime {
