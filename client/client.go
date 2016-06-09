@@ -1,28 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"errors"
-	"io"
-	"net/http"
-	"fmt"
-	"io/ioutil"
 	"encoding/base64"
 	"encoding/json"
-	"bytes"
-	math "math/rand"
-	"time"
+	"errors"
+	"fmt"
 	"github.com/ManikDV/storage/api"
+	"io"
+	"io/ioutil"
+	math "math/rand"
+	"net/http"
+	"time"
 )
 
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1 << letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
+
 var src = math.NewSource(time.Now().UnixNano())
 
 func RandStringBytesMaskImprSrc(n int) string {
@@ -51,11 +52,11 @@ type Sign2 struct {
 type Signs2 []Sign2
 
 func main() {
-	encryptedLogin,err := AESEncrypt([]byte("login"))
+	encryptedLogin, err := AESEncrypt([]byte("login"))
 	if err != nil {
 		fmt.Println(err)
 	}
-	encryptedPassword,err := AESEncrypt([]byte("password"))
+	encryptedPassword, err := AESEncrypt([]byte("password"))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -66,6 +67,7 @@ func main() {
 	GetUser(encryptedLogin, encryptedPassword, &user)
 	Authorize(encryptedLogin, encryptedPassword, user.Login, user.Password)
 	Authorize(encryptedLogin, encryptedPassword, user.Login, "456")
+	GetUserIps(encryptedLogin, encryptedPassword, &user)
 	CreateSign(encryptedLogin, encryptedPassword, &sign)
 	GetSign(encryptedLogin, encryptedPassword, &sign)
 	GetSignJson(encryptedLogin, encryptedPassword, &sign)
@@ -73,7 +75,6 @@ func main() {
 }
 
 func Authorize(encryptedLogin []byte, encryptedPassword []byte, inlogin string, inpass string) {
-	fmt.Printf("http://127.0.0.1:8080/users/authorize/%s/%s\n", inlogin, inpass)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:8080/users/authorize/%s/%s", inlogin, inpass), nil)
 	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
@@ -90,7 +91,14 @@ func Authorize(encryptedLogin []byte, encryptedPassword []byte, inlogin string, 
 	}
 	fmt.Println("------------")
 	fmt.Println("Authorize:")
-	fmt.Println(resp.StatusCode)
+	fmt.Printf("http://127.0.0.1:8080/users/authorize/%s/%s\n", inlogin, inpass)
+	if resp.StatusCode == http.StatusOK {
+		fmt.Println("Authorization successfull")
+	} else if resp.StatusCode == http.StatusUnauthorized {
+		fmt.Println("Authorization unsuccessfull")
+	} else {
+		fmt.Printf("Unknown code %d. probably you should check it\n", resp.StatusCode)
+	}
 	fmt.Println(string(contents[:]))
 }
 
@@ -125,13 +133,13 @@ func CreateSign(encryptedLogin []byte, encryptedPassword []byte, newSign *Sign2)
 func CreateUser(encryptedLogin []byte, encryptedPassword []byte, newUser *api.User) {
 	map1 := make(map[string]int)
 	map1["1"] = 1
-	array1 := []string{"1","2","3"}
+	array1 := []string{"ip1", "ip2", "ip3"}
 	user := api.User{Key: math.Intn(1000),
-		Login: RandStringBytesMaskImprSrc(5),
-		Password: RandStringBytesMaskImprSrc(5),
-		PreviusResults:array1,
-		SubscribersIP:array1,
-		Subscriptions: map1,
+		Login:          RandStringBytesMaskImprSrc(5),
+		Password:       RandStringBytesMaskImprSrc(5),
+		PreviusResults: array1,
+		SubscribersIP:  array1,
+		Subscriptions:  map1,
 	}
 	userJson, err := json.Marshal(&user)
 	if err != nil {
@@ -159,9 +167,40 @@ func CreateUser(encryptedLogin []byte, encryptedPassword []byte, newUser *api.Us
 	*newUser = user
 }
 
+func GetUserIps(encryptedLogin []byte, encryptedPassword []byte, user *api.User) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:8080/users/getips/%s", user.Login), nil)
+	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
+	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword))
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	type Answer struct {
+		Results []string `json:"address"`
+	}
+	var answer Answer
+	if err := json.Unmarshal(contents, &answer); err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+
+	fmt.Println("----------")
+	fmt.Println("Get user ips:")
+	fmt.Printf("http://127.0.0.1:8080/users/getips/%s\n", user.Login)
+	fmt.Println(resp.StatusCode)
+	fmt.Println(string(contents[:]))
+	fmt.Println(answer)
+}
+
 func GetUser(encryptedLogin []byte, encryptedPassword []byte, user *api.User) {
-	fmt.Printf("http://127.0.0.1:8080/users/%d\n", user.Key)
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:8080/users/%d",user.Key), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:8080/users/%d", user.Key), nil)
 	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
 	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword))
 	client := &http.Client{}
@@ -182,6 +221,7 @@ func GetUser(encryptedLogin []byte, encryptedPassword []byte, user *api.User) {
 
 	fmt.Println("----------")
 	fmt.Println("Get certain user:")
+	fmt.Printf("http://127.0.0.1:8080/users/%d\n", user.Key)
 	fmt.Println(resp.StatusCode)
 	fmt.Println(string(contents[:]))
 	fmt.Println(newUser)
@@ -215,7 +255,7 @@ func GetAllSigns(encryptedLogin []byte, encryptedPassword []byte) {
 }
 
 func GetSign(encryptedLogin []byte, encryptedPassword []byte, sign *Sign2) {
-	req, err := http.NewRequest("GET", "http://127.0.0.1:8080/signs/" + sign.Link, nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1:8080/signs/"+sign.Link, nil)
 	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
 	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword))
 	client := &http.Client{}

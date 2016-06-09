@@ -66,7 +66,6 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	session := db.Session.Clone()
 	defer session.Close()
 
-	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
 
 	// check for duplicates
@@ -83,6 +82,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
 	if err := collection.Insert(&sign); err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -316,7 +316,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	res,err := strconv.Atoi(userKey)
+	res, err := strconv.Atoi(userKey)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -631,56 +631,62 @@ func TestDbSpeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := time.Now()
-
 	session := db.Session.Clone()
 	defer session.Close()
 
 	database := session.DB("test")
-	collection := database.C("testspeed")
 
-	for i := 0; i < qty; i++ {
-		subj := TestStruct{Key: string(i), Value: string(i)}
+	var iterations = 10
+	var sumTime int64 = 0
 
-		// first, insert value
-		insertStart := time.Now()
-		if err := collection.Insert(&subj); err != nil {
-			log.Error("Error adding value to collection", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		elapsed := time.Since(insertStart).Nanoseconds() / 1000000
-		db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
-		db.LastWriteQueryTime = elapsed
-		if elapsed > db.MaxWriteQueryTime {
-			db.MaxWriteQueryTime = elapsed
-		}
+	for j := 0; j < iterations; j++ {
+		start := time.Now()
+		collection := database.C("testspeed")
+		for i := 0; i < qty; i++ {
+			subj := TestStruct{Key: string(i), Value: string(i)}
 
-		// second, retreive it
-		findStart := time.Now()
-		if err := collection.Find(bson.M{"key": string(i)}).One(&result); err != nil {
-			log.Error("Error retreiving value from collection", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		elapsed = time.Since(findStart).Nanoseconds() / 1000000
-		db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
-		db.LastReadQueryTime = elapsed
-		if elapsed > db.MaxReadQueryTime {
-			db.MaxReadQueryTime = elapsed
-		}
+			// first, insert value
+			insertStart := time.Now()
+			if err := collection.Insert(&subj); err != nil {
+				log.Error("Error adding value to collection", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			elapsed := time.Since(insertStart).Nanoseconds() / 1000000
+			db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
+			db.LastWriteQueryTime = elapsed
+			if elapsed > db.MaxWriteQueryTime {
+				db.MaxWriteQueryTime = elapsed
+			}
 
+			// second, retreive it
+			findStart := time.Now()
+			if err := collection.Find(bson.M{"key": string(i)}).One(&result); err != nil {
+				log.Error("Error retreiving value from collection", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			elapsed = time.Since(findStart).Nanoseconds() / 1000000
+			db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+			db.LastReadQueryTime = elapsed
+			if elapsed > db.MaxReadQueryTime {
+				db.MaxReadQueryTime = elapsed
+			}
+		}
+		// clean up
+		collection.DropCollection()
+		// count time
+		end := time.Since(start)
+		sumTime += end.Nanoseconds() / 1000000
 	}
-	// clean up
-	collection.DropCollection()
-
-	end := time.Since(start)
-	log.Infof("Test successfully passed, inserting and retreiving %d values took %d milliseconds", qty, end.Nanoseconds()/1000000)
+	log.Infof("Test successfully passed, inserting and retreiving %d values in %d series took %d milliseconds in average",
+		qty, iterations, sumTime/int64(iterations))
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Test successfully passed, inserting and retreiving %d values took %d milliseconds", qty, end.Nanoseconds()/1000000)))
+	w.Write([]byte(fmt.Sprintf("Test successfully passed, inserting and retreiving %d values in %d series took %d milliseconds in average",
+		qty, iterations, sumTime/int64(iterations))))
 }
 
 // Processes request for queries stats: average read/write time and last read/write time
