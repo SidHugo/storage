@@ -14,6 +14,7 @@ import (
 	"bytes"
 	math "math/rand"
 	"time"
+	"github.com/ManikDV/storage/api"
 )
 
 const (
@@ -60,10 +61,37 @@ func main() {
 	}
 
 	var sign Sign2
+	var user api.User
+	CreateUser(encryptedLogin, encryptedPassword, &user)
+	GetUser(encryptedLogin, encryptedPassword, &user)
+	Authorize(encryptedLogin, encryptedPassword, user.Login, user.Password)
+	Authorize(encryptedLogin, encryptedPassword, user.Login, "456")
 	CreateSign(encryptedLogin, encryptedPassword, &sign)
 	GetSign(encryptedLogin, encryptedPassword, &sign)
 	GetSignJson(encryptedLogin, encryptedPassword, &sign)
 	GetAllSigns(encryptedLogin, encryptedPassword)
+}
+
+func Authorize(encryptedLogin []byte, encryptedPassword []byte, inlogin string, inpass string) {
+	fmt.Printf("http://127.0.0.1:8080/users/authorize/%s/%s\n", inlogin, inpass)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:8080/users/authorize/%s/%s", inlogin, inpass), nil)
+	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
+	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("------------")
+	fmt.Println("Authorize:")
+	fmt.Println(resp.StatusCode)
+	fmt.Println(string(contents[:]))
 }
 
 func CreateSign(encryptedLogin []byte, encryptedPassword []byte, newSign *Sign2) {
@@ -87,10 +115,76 @@ func CreateSign(encryptedLogin []byte, encryptedPassword []byte, newSign *Sign2)
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println("-------------")
 	fmt.Println("Create sign:")
 	fmt.Println(resp.StatusCode)
 	fmt.Println(string(contents[:]))
 	*newSign = sign
+}
+
+func CreateUser(encryptedLogin []byte, encryptedPassword []byte, newUser *api.User) {
+	map1 := make(map[string]int)
+	map1["1"] = 1
+	array1 := []string{"1","2","3"}
+	user := api.User{Key: math.Intn(1000),
+		Login: RandStringBytesMaskImprSrc(5),
+		Password: RandStringBytesMaskImprSrc(5),
+		PreviusResults:array1,
+		SubscribersIP:array1,
+		Subscriptions: map1,
+	}
+	userJson, err := json.Marshal(&user)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", "http://127.0.0.1:8080/users", bytes.NewBuffer(userJson))
+	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
+	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("-------------")
+	fmt.Println("Create user:")
+	fmt.Println(resp.StatusCode)
+	fmt.Println(string(contents[:]))
+	*newUser = user
+}
+
+func GetUser(encryptedLogin []byte, encryptedPassword []byte, user *api.User) {
+	fmt.Printf("http://127.0.0.1:8080/users/%d\n", user.Key)
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:8080/users/%d",user.Key), nil)
+	req.Header.Set("login", base64.StdEncoding.EncodeToString(encryptedLogin))
+	req.Header.Set("password", base64.StdEncoding.EncodeToString(encryptedPassword))
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var newUser api.User
+	if err := json.Unmarshal(contents, &newUser); err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println("----------")
+	fmt.Println("Get certain user:")
+	fmt.Println(resp.StatusCode)
+	fmt.Println(string(contents[:]))
+	fmt.Println(newUser)
 }
 
 func GetAllSigns(encryptedLogin []byte, encryptedPassword []byte) {

@@ -316,7 +316,13 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	if err := collection.Find(bson.M{"key": userKey}).One(&user); err != nil {
+	res,err := strconv.Atoi(userKey)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := collection.Find(bson.M{"key": res}).One(&user); err != nil {
 		log.Error(err)
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
@@ -345,7 +351,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	defer session.Close()
 
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	if err := collection.Remove(bson.M{"key": userKey}); err != nil {
+	res, err := strconv.Atoi(userKey)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := collection.Remove(bson.M{"key": res}); err != nil {
 		log.Error(err)
 	}
 
@@ -373,7 +385,7 @@ func Authorization(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	if err := collection.Find(bson.M{"userLogin": userLogin}).One(&user); err != nil {
+	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
 		log.Error(err)
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
