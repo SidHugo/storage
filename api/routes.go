@@ -27,8 +27,14 @@ var routes = Routes{
 	Route{
 		"Get sign",
 		"GET",
-		"/signs/{signName}",
+		"/signs/{link}",
 		GetSign,
+	},
+	Route{
+		"Get sign by JSON parameter map",
+		"GET",
+		"/signsJson",
+		GetSignJson,
 	},
 	Route{
 		"Get signs",
@@ -39,7 +45,7 @@ var routes = Routes{
 	Route{
 		"Delete sign",
 		"DELETE",
-		"/signs/{signName}",
+		"/signs/{link}",
 		DeleteSign,
 	},
 	Route{
@@ -108,4 +114,13 @@ var routes = Routes{
 		"/testDbSpeed/{quantity}",
 		TestDbSpeed,
 	},
+	Route{
+		"Help",
+		"GET",
+		"/help",
+		GetHelp,
+	},
 }
+
+// used for /help get method
+var textRoutes []string

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -29,9 +30,9 @@ func Ping(w http.ResponseWriter, r *http.Request) {
 
 // Creates new sign in DB
 func CreateSign(w http.ResponseWriter, r *http.Request) {
-	log.Info("CreateSign")
+	log.Info("-> CreateSign")
 
-	var sign Sign
+	var sign Sign2
 
 	if !CheckCredentials(w, r) {
 		return
@@ -50,7 +51,7 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error("Could not extract db info:", err)
 	} else {
-		log.Infof("New value will be taking %f part of all storage amount", float32(len(body)) / float32(stats.StorageSize))
+		log.Infof("New value will be taking %f part of all storage amount", float32(len(body))/float32(stats.StorageSize))
 	}
 
 	if err := json.Unmarshal(body, &sign); err != nil {
@@ -65,10 +66,28 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 	session := db.Session.Clone()
 	defer session.Close()
 
-	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
+
+	// check for duplicates
+	cnt, err := collection.Find(bson.M{"link": sign.Link}).Count()
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if cnt > 0 {
+		log.Warningf("Cant insert sign %s - already present", sign.Link)
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(fmt.Sprintf("Cant insert sign %s - already present", sign.Link)))
+		return
+	}
+
+	start := time.Now()
 	if err := collection.Insert(&sign); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
 	db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
@@ -86,23 +105,79 @@ func CreateSign(w http.ResponseWriter, r *http.Request) {
 
 // Gets sign specified by URL parameter
 func GetSign(w http.ResponseWriter, r *http.Request) {
-	log.Info("GetSign")
+	log.Info("-> GetSign")
 
-	var sign Sign
+	var sign Sign2
 
 	if !CheckCredentials(w, r) {
 		return
 	}
 
-	signName := mux.Vars(r)["signName"]
+	link := mux.Vars(r)["link"]
 
 	session := db.Session.Clone()
 	defer session.Close()
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
-	if err := collection.Find(bson.M{"signname": signName}).One(&sign); err != nil {
+	if err := collection.Find(bson.M{"link": link}).One(&sign); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	elapsed := time.Since(start).Nanoseconds() / 1000000
+	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+	db.LastReadQueryTime = elapsed
+	if elapsed > db.MaxReadQueryTime {
+		db.MaxReadQueryTime = elapsed
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(sign); err != nil {
+		log.Error(err)
+	}
+}
+
+// Gets sign specified by JSON parameter
+func GetSignJson(w http.ResponseWriter, r *http.Request) {
+	log.Info("-> GetSignJson")
+
+	var sign Sign2
+
+	if !CheckCredentials(w, r) {
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := r.Body.Close(); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.Unmarshal(body, &sign); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	session := db.Session.Clone()
+	defer session.Close()
+
+	start := time.Now()
+	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
+	if err := collection.Find(bson.M{"link": sign.Link}).One(&sign); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
 	db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
@@ -120,9 +195,9 @@ func GetSign(w http.ResponseWriter, r *http.Request) {
 
 // Gets all signs from DB
 func GetSigns(w http.ResponseWriter, r *http.Request) {
-	log.Info("GetSigns")
+	log.Info("-> GetSigns")
 
-	var signs Signs
+	var signs Signs2
 
 	if !CheckCredentials(w, r) {
 		return
@@ -145,24 +220,27 @@ func GetSigns(w http.ResponseWriter, r *http.Request) {
 
 // Deletes sign by name, specified by URL parameter
 func DeleteSign(w http.ResponseWriter, r *http.Request) {
-	log.Info("DeleteSigns")
+	log.Info("-> DeleteSigns")
 
 	if !CheckCredentials(w, r) {
 		return
 	}
 
-	signName := mux.Vars(r)["signName"]
+	link := mux.Vars(r)["link"]
 	session := db.Session.Clone()
 	defer session.Close()
 
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBCollectionName)
-	if err := collection.Remove(bson.M{"signname": signName}); err != nil {
+	if err := collection.Remove(bson.M{"link": link}); err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(signName); err != nil {
+	if err := json.NewEncoder(w).Encode(link); err != nil {
 		log.Error(err)
 	}
 }
@@ -238,7 +316,13 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	if err := collection.Find(bson.M{"key": userKey}).One(&user); err != nil {
+	res, err := strconv.Atoi(userKey)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := collection.Find(bson.M{"key": res}).One(&user); err != nil {
 		log.Error(err)
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
@@ -267,7 +351,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	defer session.Close()
 
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	if err := collection.Remove(bson.M{"key": userKey}); err != nil {
+	res, err := strconv.Atoi(userKey)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := collection.Remove(bson.M{"key": res}); err != nil {
 		log.Error(err)
 	}
 
@@ -295,7 +385,7 @@ func Authorization(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	collection := session.DB(utils.Conf.DBName).C(utils.Conf.DBUsersCollectionName)
-	if err := collection.Find(bson.M{"userLogin": userLogin}).One(&user); err != nil {
+	if err := collection.Find(bson.M{"login": userLogin}).One(&user); err != nil {
 		log.Error(err)
 	}
 	elapsed := time.Since(start).Nanoseconds() / 1000000
@@ -307,18 +397,18 @@ func Authorization(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
-		Answer int	`json:"answer"`
+		Answer int `json:"answer"`
 	}
 	var answer tempAnswer
-	if(user.Password==userPassword) {
+	if user.Password == userPassword {
 		w.WriteHeader(http.StatusOK)
-		answer.Answer=1
+		answer.Answer = 1
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
-		answer.Answer=0
+		answer.Answer = 0
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
@@ -354,22 +444,22 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
-		Access int		`json:"access"`
-		Subs map[string]int	`json:"subs"`
+		Access int            `json:"access"`
+		Subs   map[string]int `json:"subs"`
 	}
 	var answer tempAnswer
 
-	if(user.Password==userPassword) {
+	if user.Password == userPassword {
 		w.WriteHeader(http.StatusOK)
-		answer.Access=1
-		answer.Subs=user.Subscriptions
+		answer.Access = 1
+		answer.Subs = user.Subscriptions
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
-		answer.Access=0
-		answer.Subs=nil
+		answer.Access = 0
+		answer.Subs = nil
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
@@ -406,11 +496,11 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	type tempAnswer struct {
-		Access int		`json:"access"`
-		Results []string	`json:"results"`
+		Access  int      `json:"access"`
+		Results []string `json:"results"`
 	}
 	var answer tempAnswer
-	if(user.Password==userPassword && user.Subscriptions[requiredLogin]!=0) {
+	if user.Password == userPassword && user.Subscriptions[requiredLogin] != 0 {
 		start = time.Now()
 		if err := collection.Find(bson.M{"login": requiredLogin}).One(&user); err != nil {
 			log.Error(err)
@@ -424,15 +514,15 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		answer.Access=1
-		answer.Results=user.PreviusResults
+		answer.Access = 1
+		answer.Results = user.PreviusResults
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
-		answer.Access=0
-		answer.Results=nil
+		answer.Access = 0
+		answer.Results = nil
 		if err := json.NewEncoder(w).Encode(answer); err != nil {
 			log.Error(err)
 		}
@@ -468,10 +558,10 @@ func GetUserIPs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	type tempAnswer struct {
-		Results []string	`json:"address"`
+		Results []string `json:"address"`
 	}
 	var answer tempAnswer
-	answer.Results=user.SubscribersIP
+	answer.Results = user.SubscribersIP
 	if err := json.NewEncoder(w).Encode(answer); err != nil {
 		log.Error(err)
 	}
@@ -541,56 +631,62 @@ func TestDbSpeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := time.Now()
-
 	session := db.Session.Clone()
 	defer session.Close()
 
 	database := session.DB("test")
-	collection := database.C("testspeed")
 
-	for i := 0; i < qty; i++ {
-		subj := TestStruct{Key: string(i), Value: string(i)}
+	var iterations = 10
+	var sumTime int64 = 0
 
-		// first, insert value
-		insertStart := time.Now()
-		if err := collection.Insert(&subj); err != nil {
-			log.Error("Error adding value to collection", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		elapsed := time.Since(insertStart).Nanoseconds() / 1000000
-		db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
-		db.LastWriteQueryTime = elapsed
-		if elapsed > db.MaxWriteQueryTime {
-			db.MaxWriteQueryTime = elapsed
-		}
+	for j := 0; j < iterations; j++ {
+		start := time.Now()
+		collection := database.C("testspeed")
+		for i := 0; i < qty; i++ {
+			subj := TestStruct{Key: string(i), Value: string(i)}
 
-		// second, retreive it
-		findStart := time.Now()
-		if err := collection.Find(bson.M{"key": string(i)}).One(&result); err != nil {
-			log.Error("Error retreiving value from collection", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		elapsed = time.Since(findStart).Nanoseconds() / 1000000
-		db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
-		db.LastReadQueryTime = elapsed
-		if elapsed > db.MaxReadQueryTime {
-			db.MaxReadQueryTime = elapsed
-		}
+			// first, insert value
+			insertStart := time.Now()
+			if err := collection.Insert(&subj); err != nil {
+				log.Error("Error adding value to collection", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			elapsed := time.Since(insertStart).Nanoseconds() / 1000000
+			db.AvgWriteQueryTime = (db.AvgWriteQueryTime + elapsed) / 2
+			db.LastWriteQueryTime = elapsed
+			if elapsed > db.MaxWriteQueryTime {
+				db.MaxWriteQueryTime = elapsed
+			}
 
+			// second, retreive it
+			findStart := time.Now()
+			if err := collection.Find(bson.M{"key": string(i)}).One(&result); err != nil {
+				log.Error("Error retreiving value from collection", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			elapsed = time.Since(findStart).Nanoseconds() / 1000000
+			db.AvgReadQueryTime = (db.AvgReadQueryTime + elapsed) / 2
+			db.LastReadQueryTime = elapsed
+			if elapsed > db.MaxReadQueryTime {
+				db.MaxReadQueryTime = elapsed
+			}
+		}
+		// clean up
+		collection.DropCollection()
+		// count time
+		end := time.Since(start)
+		sumTime += end.Nanoseconds() / 1000000
 	}
-	// clean up
-	collection.DropCollection()
-
-	end := time.Since(start)
-	log.Infof("Test successfully passed, inserting and retreiving %d values took %d milliseconds", qty, end.Nanoseconds()/1000000)
+	log.Infof("Test successfully passed, inserting and retreiving %d values in %d series took %d milliseconds in average",
+		qty, iterations, sumTime/int64(iterations))
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Test successfully passed, inserting and retreiving %d values took %d milliseconds", qty, end.Nanoseconds()/1000000)))
+	w.Write([]byte(fmt.Sprintf("Test successfully passed, inserting and retreiving %d values in %d series took %d milliseconds in average",
+		qty, iterations, sumTime/int64(iterations))))
 }
 
 // Processes request for queries stats: average read/write time and last read/write time
@@ -642,4 +738,24 @@ func CheckCredentials(w http.ResponseWriter, r *http.Request) bool {
 		}
 	}
 	return true
+}
+
+// returns list of all methods
+func GetHelp(w http.ResponseWriter, r *http.Request) {
+	log.Info("-> GetHelp")
+	var buffer bytes.Buffer
+	buffer.WriteString("Available methods:\n")
+
+	for _, routehelp := range textRoutes {
+		buffer.WriteString(routehelp + "\n")
+	}
+
+	_, err := w.Write(buffer.Bytes())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Error(err)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		log.Info("GetHelp success")
+	}
 }

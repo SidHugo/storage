@@ -19,7 +19,7 @@ func SetUpLogger(loggerName string) *logging.Logger {
 	consoleBackend := logging.NewLogBackend(os.Stdout, "", 0)
 
 	var format = logging.MustStringFormatter(
-		`%{color}%{time} %{module}->%{shortfunc} ▶ %{level} %{color:reset} %{message}`,
+		`%{time} %{module}->%{shortfunc} ▶ %{level} %{message}`,
 	)
 
 	backendFormatter := logging.NewBackendFormatter(backend, format)
