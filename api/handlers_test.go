@@ -17,12 +17,12 @@ func TestCheckCredentialsCorrect(t *testing.T) {
 		fmt.Println(err)
 		t.FailNow()
 	}
-	encryptedLogin, err := utils.AESEncrypt([]byte(utils.Conf.AuthLogin))
+	encryptedLogin, err := utils.CBCEncrypt([]byte(utils.Conf.AuthLogin))
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
-	encryptedPassword, err := utils.AESEncrypt([]byte(utils.Conf.AuthPassword))
+	encryptedPassword, err := utils.CBCEncrypt([]byte(utils.Conf.AuthPassword))
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -60,12 +60,12 @@ func TestCheckCredentialsIncorrect(t *testing.T) {
 		fmt.Println(err)
 		t.FailNow()
 	}
-	encryptedLogin, err := utils.AESEncrypt([]byte("test"))
+	encryptedLogin, err := utils.CBCEncrypt([]byte("test"))
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
-	encryptedPassword, err := utils.AESEncrypt([]byte("test"))
+	encryptedPassword, err := utils.CBCEncrypt([]byte("test"))
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()

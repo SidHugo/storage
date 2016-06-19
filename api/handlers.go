@@ -300,6 +300,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets user by its key and sends it back in json
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetUser")
 
@@ -339,6 +340,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Deletes user by its key
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	log.Info("DeleteUser")
 
@@ -368,6 +370,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Authorize user and sends back 0 (if failed) or 1 (otherwise) in json
 func Authorization(w http.ResponseWriter, r *http.Request) {
 	log.Info("Authorization")
 
@@ -415,6 +418,7 @@ func Authorization(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets user subscriptions and sends it back in json
 func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetSubscriptions")
 
@@ -466,6 +470,7 @@ func GetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets last results and sends it back in json
 func GetLastResults(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetLastResults")
 
@@ -529,6 +534,7 @@ func GetLastResults(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Gets IP of subscribers and sends it back in json
 func GetUserIPs(w http.ResponseWriter, r *http.Request) {
 	log.Info("GetUserIPs")
 
@@ -717,14 +723,14 @@ func CheckCredentials(w http.ResponseWriter, r *http.Request) bool {
 	} else {
 		decodedLogin, err := base64.StdEncoding.DecodeString(login)
 		decodedPassword, err := base64.StdEncoding.DecodeString(password)
-		decryptedLogin, err := utils.AESDecrypt(decodedLogin)
+		decryptedLogin, err := utils.CBCDecrypt(decodedLogin)
 		if err != nil {
 			log.Errorf("Decryption failed for sign message: %s, error: %s", login, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return false
 		}
 
-		decryptedPassword, err := utils.AESDecrypt(decodedPassword)
+		decryptedPassword, err := utils.CBCDecrypt(decodedPassword)
 		if err != nil {
 			log.Errorf("Decryption failed for sign message: %s, error: %s", password, err)
 			w.WriteHeader(http.StatusInternalServerError)
